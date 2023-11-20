@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Author {
+  id                String            @id @default(uuid()) @db.Uuid
+  personalInfo      PersonalInfo?
+  stages            AuthorStage[]
+  worksAboutMe      WorkAboutAuthor[] @relation("worksAboutMe")
+  worksAboutAuthors WorkAboutAuthor[] @relation("worksAboutAuthors")
+  worksAboutWorks   WorkAboutWork[]
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model PersonalInfo {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  author             Author                   @relation(fields: [authorId], references: [id])
+  authorId           String                   @unique @db.Uuid
+  name               String
+  pseudonim          String?
+  birthDate          DateTime                 @db.Date
+  deathDate          DateTime                 @db.Date
+  gender             Gender
+  parents            String[]
+  children           String[]
+  siblings           String[]
+  relevantActivities RelevantActivity[]
+  relatedMultimedia  PersonalInfoMultimedia[]
+}
+
+model PersonalInfoMultimedia {
+  id             String       @id @default(uuid()) @db.Uuid
+  type           String
+  description    String
+  source         String
+  copyright      String
+  reference      String
+  personalInfo   PersonalInfo @relation(fields: [personalInfoId], references: [id])
+  personalInfoId String       @db.Uuid
+}
+
+model RelevantActivity {
+  id                     String       @id @default(uuid()) @db.Uuid
+  personalInfo           PersonalInfo @relation(fields: [personalInfoId], references: [id])
+  personalInfoId         String       @db.Uuid
+  activity               String
+  type                   String
+  place                  String
+  placeSite              String
+  activityStartTimestamp DateTime
+  activityEndTimestamp   DateTime
+  awardsReceived         String[]
+  groups                 String[]
+  magazines              String[]
+
+  @@unique([personalInfoId, activity, activityStartTimestamp])
+}
+
+model WorkAboutAuthor {
+  id                 String                      @id @default(uuid()) @db.Uuid
+  type               String
+  author             Author                      @relation("worksAboutAuthors", fields: [authorId], references: [id])
+  authorId           String                      @db.Uuid
+  elaborationDate    DateTime                    @db.Date
+  reference          String
+  referencedAuthor   Author                      @relation("worksAboutMe", fields: [referencedAuthorId], references: [id])
+  referencedAuthorId String                      @db.Uuid
+  relatedMultimedia  WorkAboutAuthorMultimedia[]
+
+  @@unique([authorId, elaborationDate, referencedAuthorId])
+}
+
+model WorkAboutAuthorMultimedia {
+  id          String          @id @default(uuid()) @db.Uuid
+  work        WorkAboutAuthor @relation(fields: [workId], references: [id])
+  workId      String          @db.Uuid
+  type        String
+  description String
+  source      String
+  copyright   String
+  reference   String
+}
+
+model AuthorStage {
+  id          String   @id @default(uuid()) @db.Uuid
+  stage       String
+  startDate   DateTime @db.Date
+  endDate     DateTime @db.Date
+  trend       String
+  movement    String
+  style       String
+  description String
+  author      Author   @relation(fields: [authorId], references: [id])
+  authorId    String   @db.Uuid
+  works       Work[]
+
+  @@unique([authorId, startDate])
+}
+
+model Work {
+  id                   String           @id @default(uuid()) @db.Uuid
+  genre                String
+  title                String
+  description          String
+  meter                String
+  subject              String
+  originalLanguage     String
+  elaborationStartDate DateTime         @db.Date
+  elaborationEndDate   DateTime         @db.Date
+  elaborationPlaces    String[]
+  authorStage          AuthorStage      @relation(fields: [authorStageId], references: [id])
+  authorStageId        String           @db.Uuid
+  worksAboutThis       WorkAboutWork[]
+  publications         Publication[]
+  relatedMultimedia    WorkMultimedia[]
+
+  @@unique([title, elaborationStartDate, authorStageId])
+}
+
+model WorkMultimedia {
+  id          String @id @default(uuid()) @db.Uuid
+  work        Work   @relation(fields: [workId], references: [id])
+  workId      String @db.Uuid
+  type        String
+  description String
+  source      String
+  copyright   String
+  reference   String
+}
+
+model Publication {
+  id                String                  @id @default(uuid()) @db.Uuid
+  type              String
+  title             String
+  publicationDate   DateTime                @db.Date
+  publicationPlace  String
+  edition           String
+  publisher         String
+  language          String
+  translator        String
+  work              Work                    @relation(fields: [workId], references: [id])
+  workId            String                  @db.Uuid
+  relatedMultimedia PublicationMultimedia[]
+
+  @@unique([title, publisher, publicationDate])
+}
+
+model PublicationMultimedia {
+  id            String      @id @default(uuid()) @db.Uuid
+  publication   Publication @relation(fields: [publicationId], references: [id])
+  publicationId String      @db.Uuid
+  description   String
+  source        String
+  copyright     String
+  reference     String
+}
+
+model WorkAboutWork {
+  id                String                    @id @default(uuid()) @db.Uuid
+  type              String
+  author            Author                    @relation(fields: [authorId], references: [id])
+  authorId          String                    @db.Uuid
+  elaborationDate   DateTime                  @db.Date
+  reference         String
+  referencedWork    Work                      @relation(fields: [referencedWorkId], references: [id])
+  referencedWorkId  String                    @db.Uuid
+  relatedMultimedia WorkAboutWorkMultimedia[]
+
+  @@unique([authorId, elaborationDate, referencedWorkId])
+}
+
+model WorkAboutWorkMultimedia {
+  id          String        @id @default(uuid()) @db.Uuid
+  work        WorkAboutWork @relation(fields: [workId], references: [id])
+  workId      String        @db.Uuid
+  description String
+  source      String
+  copyright   String
+  reference   String
+}
