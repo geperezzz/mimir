@@ -10,7 +10,7 @@ datasource db {
 model Author {
   id                String            @id @default(uuid()) @db.Uuid
   personalInfo      PersonalInfo?
-  stages            AuthorStage[]
+  phases            Phase[]
   worksAboutMe      WorkAboutAuthor[] @relation("worksAboutMe")
   worksAboutAuthors WorkAboutAuthor[] @relation("worksAboutAuthors")
   worksAboutWorks   WorkAboutWork[]
@@ -90,9 +90,9 @@ model WorkAboutAuthorMultimedia {
   reference   String
 }
 
-model AuthorStage {
+model Phase {
   id          String   @id @default(uuid()) @db.Uuid
-  stage       String
+  phase       String
   startDate   DateTime @db.Date
   endDate     DateTime @db.Date
   trend       String
@@ -117,13 +117,13 @@ model Work {
   elaborationStartDate DateTime         @db.Date
   elaborationEndDate   DateTime         @db.Date
   elaborationPlaces    String[]
-  authorStage          AuthorStage      @relation(fields: [authorStageId], references: [id])
-  authorStageId        String           @db.Uuid
+  authorPhase          Phase            @relation(fields: [authorPhaseId], references: [id])
+  authorPhaseId        String           @db.Uuid
   worksAboutThis       WorkAboutWork[]
   publications         Publication[]
   relatedMultimedia    WorkMultimedia[]
 
-  @@unique([title, elaborationStartDate, authorStageId])
+  @@unique([title, elaborationStartDate, authorPhaseId])
 }
 
 model WorkMultimedia {
@@ -151,7 +151,7 @@ model Publication {
   workId            String                  @db.Uuid
   relatedMultimedia PublicationMultimedia[]
 
-  @@unique([title, publisher, publicationDate])
+  @@unique([workId, publisher, publicationDate, publicationPlace])
 }
 
 model PublicationMultimedia {
