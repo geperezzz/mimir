@@ -7,183 +7,144 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Author {
-  id                String            @id @default(uuid()) @db.Uuid
-  personalInfo      PersonalInfo?
-  phases            Phase[]
-  worksAboutMe      WorkAboutAuthor[] @relation("worksAboutMe")
-  worksAboutAuthors WorkAboutAuthor[] @relation("worksAboutAuthors")
-  worksAboutWorks   WorkAboutWork[]
-}
-
-enum Gender {
+enum gender {
   MALE
   FEMALE
 }
 
-model PersonalInfo {
-  id                 String                   @id @default(uuid()) @db.Uuid
-  author             Author                   @relation(fields: [authorId], references: [id])
-  authorId           String                   @unique @db.Uuid
-  name               String
-  pseudonim          String?
-  birthDate          DateTime                 @db.Date
-  deathDate          DateTime                 @db.Date
-  gender             Gender
-  parents            String[]
-  children           String[]
-  siblings           String[]
-  relevantActivities RelevantActivity[]
-  relatedMultimedia  PersonalInfoMultimedia[]
+model authors {
+  id                  String                     @id @default(uuid()) @db.Uuid
+  name                String?
+  pseudonim           String?
+  birth_date          DateTime?                  @db.Date
+  death_date          DateTime?                  @db.Date
+  gender              gender?
+  parents             String[]
+  children            String[]
+  siblings            String[]
+  phases              phases[]
+  related_multimedia  multimedia[]
+  works_about_me      author_work[]
+  relevant_activities relevant_activity_author[]
 }
 
-model PersonalInfoMultimedia {
-  id             String       @id @default(uuid()) @db.Uuid
+model relevant_activities {
+  id                       String                     @id @default(uuid()) @db.Uuid
+  activity                 String
+  type                     String
+  place                    String
+  place_site               String
+  activity_start_timestamp DateTime
+  activity_end_timestamp   DateTime
+  awards_received          String[]
+  groups                   String[]
+  magazines                String[]
+  involved_authors         relevant_activity_author[]
+
+  @@unique([activity, activity_start_timestamp, place, place_site])
+}
+
+model phases {
+  id          String       @id @default(uuid()) @db.Uuid
+  phase       String
+  start_date  DateTime     @db.Date
+  end_date    DateTime     @db.Date
+  trend       String
+  movement    String
+  style       String
+  description String
+  author      authors      @relation(fields: [author_id], references: [id])
+  author_id   String       @db.Uuid
+  works       phase_work[]
+
+  @@unique([author_id, start_date])
+}
+
+model works {
+  id                         String              @id @default(uuid()) @db.Uuid
+  genre                      String
+  title                      String
+  description                String
+  meter                      String
+  subject                    String
+  original_language          String
+  elaboration_start_date     DateTime            @db.Date
+  elaboration_end_date       DateTime            @db.Date
+  elaboration_places         String[]
+  authors_phases             phase_work[]
+  publications               publications[]
+  works_about_this           works_about_works[] @relation("referencing_work")
+  works_whose_this_is_about  works_about_works[] @relation("referenced_work")
+  authors_whom_this_is_about author_work[]
+  related_multimedia         multimedia[]
+
+  // trigger -> @@unique([title, elaboration_start_date, authors_phases])
+}
+
+model works_about_works {
+  referencing_work    works  @relation("referencing_work", fields: [referencing_work_id], references: [id])
+  referencing_work_id String @db.Uuid
+  referenced_work     works  @relation("referenced_work", fields: [referenced_work_id], references: [id])
+  referenced_work_id  String @db.Uuid
+
+  @@id([referencing_work_id, referenced_work_id])
+}
+
+model multimedia {
+  id             String        @id @default(uuid()) @db.Uuid
+  work           works         @relation(fields: [work_id], references: [id])
+  work_id        String        @db.Uuid
   type           String
   description    String
   source         String
   copyright      String
   reference      String
-  personalInfo   PersonalInfo @relation(fields: [personalInfoId], references: [id])
-  personalInfoId String       @db.Uuid
+  author         authors?      @relation(fields: [author_id], references: [id])
+  author_id      String?       @db.Uuid
+  publication    publications? @relation(fields: [publication_id], references: [id])
+  publication_id String?       @db.Uuid
 }
 
-model RelevantActivity {
-  id                     String       @id @default(uuid()) @db.Uuid
-  personalInfo           PersonalInfo @relation(fields: [personalInfoId], references: [id])
-  personalInfoId         String       @db.Uuid
-  activity               String
-  type                   String
-  place                  String
-  placeSite              String
-  activityStartTimestamp DateTime
-  activityEndTimestamp   DateTime
-  awardsReceived         String[]
-  groups                 String[]
-  magazines              String[]
-
-  @@unique([personalInfoId, activity, activityStartTimestamp])
-}
-
-model WorkAboutAuthor {
-  id                 String                      @id @default(uuid()) @db.Uuid
+model publications {
+  id                 String       @id @default(uuid()) @db.Uuid
   type               String
-  author             Author                      @relation("worksAboutAuthors", fields: [authorId], references: [id])
-  authorId           String                      @db.Uuid
-  elaborationDate    DateTime                    @db.Date
-  reference          String
-  referencedAuthor   Author                      @relation("worksAboutMe", fields: [referencedAuthorId], references: [id])
-  referencedAuthorId String                      @db.Uuid
-  relatedMultimedia  WorkAboutAuthorMultimedia[]
+  title              String
+  publication_date   DateTime     @db.Date
+  publication_place  String
+  edition            String
+  publisher          String
+  language           String
+  translator         String
+  work               works        @relation(fields: [work_id], references: [id])
+  work_id            String       @db.Uuid
+  related_multimedia multimedia[]
 
-  @@unique([authorId, elaborationDate, referencedAuthorId])
+  @@unique([work_id, publisher, publication_date, publication_place])
 }
 
-model WorkAboutAuthorMultimedia {
-  id          String          @id @default(uuid()) @db.Uuid
-  work        WorkAboutAuthor @relation(fields: [workId], references: [id])
-  workId      String          @db.Uuid
-  type        String
-  description String
-  source      String
-  copyright   String
-  reference   String
+model author_work {
+  author_id String  @db.Uuid
+  work_id   String  @db.Uuid
+  authors   authors @relation(fields: [author_id], references: [id])
+  works     works   @relation(fields: [work_id], references: [id])
+
+  @@id([author_id, work_id])
 }
 
-model Phase {
-  id          String   @id @default(uuid()) @db.Uuid
-  phase       String
-  startDate   DateTime @db.Date
-  endDate     DateTime @db.Date
-  trend       String
-  movement    String
-  style       String
-  description String
-  author      Author   @relation(fields: [authorId], references: [id])
-  authorId    String   @db.Uuid
-  works       Work[]
+model phase_work {
+  phase_id String @db.Uuid
+  work_id  String @db.Uuid
+  phases   phases @relation(fields: [phase_id], references: [id])
+  works    works  @relation(fields: [work_id], references: [id])
 
-  @@unique([authorId, startDate])
+  @@id([phase_id, work_id])
 }
 
-model Work {
-  id                   String           @id @default(uuid()) @db.Uuid
-  genre                String
-  title                String
-  description          String
-  meter                String
-  subject              String
-  originalLanguage     String
-  elaborationStartDate DateTime         @db.Date
-  elaborationEndDate   DateTime         @db.Date
-  elaborationPlaces    String[]
-  authorPhase          Phase            @relation(fields: [authorPhaseId], references: [id])
-  authorPhaseId        String           @db.Uuid
-  worksAboutThis       WorkAboutWork[]
-  publications         Publication[]
-  relatedMultimedia    WorkMultimedia[]
+model relevant_activity_author {
+  relevant_activity_id String              @db.Uuid
+  author_id            String              @db.Uuid
+  relevant_activities  relevant_activities @relation(fields: [relevant_activity_id], references: [id])
+  authors              authors             @relation(fields: [author_id], references: [id])
 
-  @@unique([title, elaborationStartDate, authorPhaseId])
-}
-
-model WorkMultimedia {
-  id          String @id @default(uuid()) @db.Uuid
-  work        Work   @relation(fields: [workId], references: [id])
-  workId      String @db.Uuid
-  type        String
-  description String
-  source      String
-  copyright   String
-  reference   String
-}
-
-model Publication {
-  id                String                  @id @default(uuid()) @db.Uuid
-  type              String
-  title             String
-  publicationDate   DateTime                @db.Date
-  publicationPlace  String
-  edition           String
-  publisher         String
-  language          String
-  translator        String
-  work              Work                    @relation(fields: [workId], references: [id])
-  workId            String                  @db.Uuid
-  relatedMultimedia PublicationMultimedia[]
-
-  @@unique([workId, publisher, publicationDate, publicationPlace])
-}
-
-model PublicationMultimedia {
-  id            String      @id @default(uuid()) @db.Uuid
-  publication   Publication @relation(fields: [publicationId], references: [id])
-  publicationId String      @db.Uuid
-  description   String
-  source        String
-  copyright     String
-  reference     String
-}
-
-model WorkAboutWork {
-  id                String                    @id @default(uuid()) @db.Uuid
-  type              String
-  author            Author                    @relation(fields: [authorId], references: [id])
-  authorId          String                    @db.Uuid
-  elaborationDate   DateTime                  @db.Date
-  reference         String
-  referencedWork    Work                      @relation(fields: [referencedWorkId], references: [id])
-  referencedWorkId  String                    @db.Uuid
-  relatedMultimedia WorkAboutWorkMultimedia[]
-
-  @@unique([authorId, elaborationDate, referencedWorkId])
-}
-
-model WorkAboutWorkMultimedia {
-  id          String        @id @default(uuid()) @db.Uuid
-  work        WorkAboutWork @relation(fields: [workId], references: [id])
-  workId      String        @db.Uuid
-  description String
-  source      String
-  copyright   String
-  reference   String
+  @@id([relevant_activity_id, author_id])
 }
